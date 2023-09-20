@@ -54,3 +54,4 @@ dkms.conf
 #vsfile
 build/
 build/*
+.cache/
