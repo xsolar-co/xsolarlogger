@@ -14,16 +14,9 @@
 #include <assert.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "mqtt_sink.h"
-
-#ifdef DEBUG
-#define MQTT_ADDRESS "tcp://103.161.39.186:1883"
-#define MQTT_TOPIC "lxd/BA31605780"
-#define MQTT_USERNAME "lxdvinhnguyen01"
-#define MQTT_PASSWORD "lxd@123"
-#define CLIENT_ID "ClientID-vn"
-#endif // DEBUG
 
 volatile int _connected = 0;
 /**
@@ -97,7 +90,7 @@ void* mqtt_sink_task(void* arg) {
 
     while(1)
     {
-        MQTTClient_create(&client, mqtt_addr, CLIENT_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;
         conn_opts.username = cfg->username;
@@ -158,7 +151,7 @@ void* mqtt_sink_task(void* arg) {
  * @param password 
  * @return int 
  */
-int mqtt_sink_init(mqtt_sync_config* cfg, Queue* q, const char* host, int port, const char* username, const char* password, const char* topic)
+int mqtt_sink_init(mqtt_sync_config* cfg, Queue* q, const char* host, int port, const char* username, const char* password, const char* client_id, const char* topic)
 {
     memset(cfg, 0, sizeof (mqtt_sync_config));
 
@@ -176,6 +169,15 @@ int mqtt_sink_init(mqtt_sync_config* cfg, Queue* q, const char* host, int port, 
 
     if (topic != NULL)
         cfg->topic = strdup(topic);
+
+    if (client_id != NULL)
+        cfg->client_id = strdup(client_id);
+    else {
+        char id[128];
+        sprintf(id, "client-%lu\n", (unsigned long)time(NULL));
+
+        cfg->client_id = strdup(id);
+    } 
 
     return 0;
 }
@@ -196,6 +198,12 @@ int mqtt_sink_term(mqtt_sync_config* cfg)
 
     if (cfg->password != NULL)
         free(cfg->password);
+    
+    if (cfg->client_id != NULL)
+        free(cfg->client_id);
+
+    if (cfg->topic != NULL)
+        free(cfg->topic);
 
     return 0;
 }
@@ -209,6 +217,18 @@ int mqtt_sink_term(mqtt_sync_config* cfg)
 int mqtt_sink_run(mqtt_sync_config* cfg)
 {   
     return 
-        pthread_create(&cfg->task_thread, NULL, mqtt_sink_task, cfg->q);
+        pthread_create(&cfg->task_thread, NULL, mqtt_sink_task, cfg);
     
+}
+
+/**
+ * @brief Wait until end
+ * 
+ * @param cfg 
+ * @return int 
+ */
+int mqtt_sink_wait(mqtt_sync_config* cfg)
+{
+    return 
+        pthread_join(&cfg->task_thread, NULL);    
 }
