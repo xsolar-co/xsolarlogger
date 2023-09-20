@@ -28,13 +28,46 @@ Queue   influx_queue;
 Queue   mqtt_sink_queue;
 Channel channel;
 
-mqtt_sync_config mqtt_sink_conf;
+influx_sink_config influx_sink_conf;
+int influx_sink_task_init()
+{
+        // read config
+    // Access the 'mqtt-sink' subsetting
+    config_setting_t* influx_sink = config_lookup(&cfg, "influx-sink");
 
+    if (influx_sink != NULL) {
+        char* url = (char*)read_string_setting(influx_sink, "url", "");
+        char* orgid = (char*)read_string_setting(influx_sink, "orgid", "lxdvinhnguyen01");
+        char* token = (char*)read_string_setting(influx_sink, "token", "lxd@123");
+        
+        printf("url: %s\n", url);
+        printf("orgid: %s\n", orgid);
+        printf("token: %s\n", token);
+    
+        influx_sink_init2(&influx_sink_conf, &mqtt_sink_queue, url, orgid, token);
+        influx_sink_run(&influx_sink_conf);
+
+    } else {
+        fprintf(stderr, "The 'influx-sink' subsetting is missing.\n");
+    }   
+
+    return 0;
+}
+
+int influx_sink_task_cleanup()
+{
+    influx_sink_wait(&influx_sink_conf);
+    influx_sink_term(&influx_sink_conf);
+
+    return 0;
+}
+
+mqtt_sync_config mqtt_sink_conf;
 int mqtt_sink_task_init()
 {
     // read config
-    // Access the 'mqtt-src' subsetting
-    config_setting_t* mqtt_src = config_lookup(&cfg, "mqttsink");
+    // Access the 'mqtt-sink' subsetting
+    config_setting_t* mqtt_src = config_lookup(&cfg, "mqtt-sink");
 
     if (mqtt_src != NULL) {
         char* host = (char*)read_string_setting(mqtt_src, "host", "103.161.39.186");
@@ -54,13 +87,6 @@ int mqtt_sink_task_init()
         mqtt_sink_init(&mqtt_sink_conf, &mqtt_sink_queue, host, port, username, password, NULL, topic);
         mqtt_sink_run(&mqtt_sink_conf);
 
-
-        // free(host);
-        // free(username);
-        // free(password);
-        // free(clientid);
-        // free(topic);
-
     } else {
         fprintf(stderr, "The 'mqtt-sink' subsetting is missing.\n");
     }   
@@ -79,7 +105,7 @@ int mqtt_sink_task_cleanup()
 mqtt_source_config mqtt_source_conf;
 int mqtt_source_task_init()
 {
-    config_setting_t* mqtt_src = config_lookup(&cfg, "mqttsrc");
+    config_setting_t* mqtt_src = config_lookup(&cfg, "mqtt-src");
 
     if (mqtt_src != NULL) {
         char* host = (char*)read_string_setting(mqtt_src, "host", "192.168.31.166");
@@ -166,8 +192,7 @@ int main(int argc, char* argv[]) {
     // influx task
     logMessage(LOG_INFO, "Init Influx send task\n");
     initQueue(&influx_queue);
-    pthread_t influx_writer_thread;
-    pthread_create(&influx_writer_thread, NULL, influxdb_write_task, &influx_queue);
+    influx_sink_task_init();
 
     // mqtt target task
     logMessage(LOG_INFO, "Init MQTT send task\n");
@@ -186,9 +211,8 @@ int main(int argc, char* argv[]) {
     }
 
     cleanupLogger();
-    pthread_join(influx_writer_thread, NULL);
-
     mqtt_source_task_cleanup();
+    influx_sink_task_cleanup();
     mqtt_sink_task_cleanup();
 
     config_destroy(&cfg);

@@ -3,6 +3,9 @@
 #include "squeue.h"
 #include "datalog.h"
 
+//FIXME
+extern char* strdup(const char*);
+
 #define INFLUXDB_ADDRESS    "http://192.168.31.166:8086/write?db=lxp"
 #define INFLUXDB2_ADDRESS   "http://103.161.39.186:8086/api/v2/write?org=5b2b5d425dabd4e0&bucket=lxp"
 #define INFLUXDB2_USERNAME  ""
@@ -65,9 +68,11 @@ void sendDataToInfluxDBv2(const char* data) {
 }
 
 void* influxdb_write_task(void* arg) {
-    Queue* q = (Queue*)arg;
-    while (1) {
-        char data[2048];
+    influx_sink_config* cfg = (influx_sink_config*) arg;
+    Queue* q = (Queue*)cfg->q;
+
+    char data[2048];
+    while (1) {        
         int ret = wait_dequeue(q, data);
 
         if (ret == 0) {
@@ -118,4 +123,124 @@ void* influxdb_write_task(void* arg) {
     }
     
     return NULL;
+}
+
+/**
+ * @brief Init Source task
+ * 
+ * @param cfg 
+ * @param host 
+ * @param port 
+ * @param username 
+ * @param password 
+ * @return int 
+ */
+int influx_sink_init(influx_sink_config* cfg, Queue* q, const char* host, int port, const char* username, const char* password, const char* client_id, const char* topic)
+{
+    memset(cfg, 0, sizeof (influx_sink_config));
+
+    cfg->q = q;
+
+    if (host != NULL)
+        cfg->host = strdup(host);
+
+    cfg->port = port;
+    if (username != NULL)
+        cfg->username = strdup(username);
+
+    if (password != NULL)
+        cfg->password = strdup(password);
+
+    if (topic != NULL)
+        cfg->topic = strdup(topic);
+
+    if (client_id != NULL)
+        cfg->client_id = strdup(client_id);
+    else {
+        char id[128];
+        sprintf(id, "client-src-%lu\n", (unsigned long)time(NULL));
+
+        cfg->client_id = strdup(id);
+    } 
+
+    return 0;
+}
+
+/**
+ * @brief init for v2
+ * 
+ * @param cfg 
+ * @param q 
+ * @param url 
+ * @param orgid 
+ * @param token 
+ * @return int 
+ */
+int influx_sink_init2(influx_sink_config* cfg, Queue* q, const char* url, const char* orgid, const char* token)
+{
+    memset(cfg, 0, sizeof (influx_sink_config));
+
+    cfg->q = q;
+
+    if (url != NULL)
+        cfg->url = strdup(url);
+
+    if (orgid != NULL)
+        cfg->orgid = strdup(orgid);
+
+    if (token != NULL)
+        cfg->token = strdup(token);
+
+    return 0;
+}
+
+/**
+ * @brief Free task's data
+ * 
+ * @param cfg 
+ * @return int 
+ */
+int influx_sink_term(influx_sink_config* cfg)
+{
+    if (cfg->host != NULL)
+        free(cfg->host);
+
+    if (cfg->username != NULL)
+        free(cfg->username);
+
+    if (cfg->password != NULL)
+        free(cfg->password);
+    
+    if (cfg->client_id != NULL)
+        free(cfg->client_id);
+
+    if (cfg->topic != NULL)
+        free(cfg->topic);
+
+    return 0;
+}
+
+/**
+ * @brief Do the task
+ * 
+ * @param cfg 
+ * @return int 
+ */
+int influx_sink_run(influx_sink_config* cfg)
+{   
+    return 
+        pthread_create(&cfg->task_thread, NULL, influxdb_write_task, cfg);
+    
+}
+
+/**
+ * @brief Wait until end
+ * 
+ * @param cfg 
+ * @return int 
+ */
+int influx_sink_wait(influx_sink_config* cfg)
+{
+    return 
+        pthread_join(&cfg->task_thread, NULL);    
 }
