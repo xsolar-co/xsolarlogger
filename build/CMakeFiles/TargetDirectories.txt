@@ -1,0 +1,3 @@
+/home/longdh/xsolar/cworking/github/xsolarlogger/build/CMakeFiles/xsolarlogger.dir
+/home/longdh/xsolar/cworking/github/xsolarlogger/build/CMakeFiles/edit_cache.dir
+/home/longdh/xsolar/cworking/github/xsolarlogger/build/CMakeFiles/rebuild_cache.dir

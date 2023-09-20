@@ -1,61 +1,116 @@
+/**
+ * @file mqtt_sink.c
+ * @author longdh (longdh@xsolar.vn)
+ * @brief 
+ * @version 0.1
+ * @date 2023-09-20
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <pthread.h>
 #include <unistd.h>
 
-#include "MQTTClient.h"
-#include "squeue.h"
+#include "mqtt_sink.h"
 
-#define MQTT_ADDRESS "tcp://103.161.39.186:1883"  // Change to your MQTT broker address
+#ifdef DEBUG
+#define MQTT_ADDRESS "tcp://103.161.39.186:1883"
 #define MQTT_TOPIC "lxd/BA31605780"
 #define MQTT_USERNAME "lxdvinhnguyen01"
 #define MQTT_PASSWORD "lxd@123"
-#define CLIENT_ID "ClientID-vn" // Change to a unique identifier for your client
+#define CLIENT_ID "ClientID-vn"
+#endif // DEBUG
 
-// connection lost callback
 volatile int _connected = 0;
+/**
+ * @brief Connection Disconnect callback
+ * 
+ * @param context 
+ * @param cause 
+ */
 static void connectionLost(void* context, char* cause) {
+    #ifdef DEBUG
     printf("Connection lost, cause: %s\n", cause);
+    #endif // DEBUG
+    
     _connected = 0;
 }
 
-// delivery callback
 volatile MQTTClient_deliveryToken _deliveredtoken;
+/**
+ * @brief For qos 1
+ * 
+ * @param context 
+ * @param dt 
+ */
 static void delivered(void* context, MQTTClient_deliveryToken dt) {
+    #ifdef DEBUG
     printf("Message with token value %d delivery confirmed\n", dt);
+    #endif // DEBUG   
 
     _deliveredtoken = dt;
 }
 
-// sync thread
+/**
+ * @brief sink thread (forward thread)
+ * 
+ * @param arg 
+ * @return void* 
+ */
 void* mqtt_sink_task(void* arg) {
+
+    mqtt_sync_config* cfg= (mqtt_sync_config*) arg;
+    if (cfg == NULL)
+    {
+        #ifdef DEBUG
+        printf("Error queue...\n");
+        #endif // DEBUG
+        
+        exit(-1);
+    }
+
     MQTTClient client;
     MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
     int rc;
 
-    Queue* q = (Queue*)arg;
+    Queue* q = (Queue*) cfg->q;
     char data[MAX_QUEUE_DATA_SIZE];
 
     if (q == NULL)
     {
+        #ifdef DEBUG
         printf("Error queue...\n");
+        #endif // DEBUG
+        
         exit(-1);
     }
 
+    char mqtt_addr[256];
+    sprintf(mqtt_addr, "tcp://%s:%d", cfg->host, cfg->port);
+    #ifdef DEBUG
+    printf("connect to %s\n", mqtt_addr);
+    #endif // DEBUG
+
     while(1)
     {
-        MQTTClient_create(&client, MQTT_ADDRESS, CLIENT_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        MQTTClient_create(&client, mqtt_addr, CLIENT_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;
-        conn_opts.username = MQTT_USERNAME;
-        conn_opts.password = MQTT_PASSWORD;
+        conn_opts.username = cfg->username;
+        conn_opts.password = cfg->password;
 
         MQTTClient_setCallbacks(client, NULL, connectionLost, NULL, delivered);
 
 
         if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
+            #ifdef DEBUG
             printf("Failed to connect, return code %d, retrying ...\n", rc);
+            #endif
+
             sleep(5);
 
             continue;
@@ -67,8 +122,9 @@ void* mqtt_sink_task(void* arg) {
         while (_connected) {
             if (wait_dequeue(q, data))
             {
+                #ifdef DEBUG
                 printf("%s\n", data);
-
+                #endif // DEBUG
 
                 MQTTClient_message pubmsg = MQTTClient_message_initializer;
                 MQTTClient_deliveryToken token;
@@ -78,7 +134,7 @@ void* mqtt_sink_task(void* arg) {
                 pubmsg.qos = 1;
                 pubmsg.retained = 0;
 
-                MQTTClient_publishMessage(client, MQTT_TOPIC, &pubmsg, &token);
+                MQTTClient_publishMessage(client, cfg->topic, &pubmsg, &token);
                 MQTTClient_waitForCompletion(client, token, 1000);
             }
         }
@@ -90,4 +146,69 @@ void* mqtt_sink_task(void* arg) {
 
 
     return NULL;
+}
+
+/**
+ * @brief Init sync task
+ * 
+ * @param cfg 
+ * @param host 
+ * @param port 
+ * @param username 
+ * @param password 
+ * @return int 
+ */
+int mqtt_sink_init(mqtt_sync_config* cfg, Queue* q, const char* host, int port, const char* username, const char* password, const char* topic)
+{
+    memset(cfg, 0, sizeof (mqtt_sync_config));
+
+    cfg->q = q;
+
+    if (host != NULL)
+        cfg->host = strdup(host);
+
+    cfg->port = port;
+    if (username != NULL)
+        cfg->username = strdup(username);
+
+    if (password != NULL)
+        cfg->password = strdup(password);
+
+    if (topic != NULL)
+        cfg->topic = strdup(topic);
+
+    return 0;
+}
+
+/**
+ * @brief Free task's data
+ * 
+ * @param cfg 
+ * @return int 
+ */
+int mqtt_sink_term(mqtt_sync_config* cfg)
+{
+    if (cfg->host != NULL)
+        free(cfg->host);
+
+    if (cfg->username != NULL)
+        free(cfg->username);
+
+    if (cfg->password != NULL)
+        free(cfg->password);
+
+    return 0;
+}
+
+/**
+ * @brief Do the task
+ * 
+ * @param cfg 
+ * @return int 
+ */
+int mqtt_sink_run(mqtt_sync_config* cfg)
+{   
+    return 
+        pthread_create(&cfg->task_thread, NULL, mqtt_sink_task, cfg->q);
+    
 }
