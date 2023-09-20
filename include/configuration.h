@@ -1,14 +1,13 @@
 #ifndef __CONFIG_MODULE__
 #define __CONFIG_MODULE__
 
-// Define a structure to hold configuration values
-typedef struct {
-    int port;
-    char address[255];
-    // Add more configuration variables as needed
-} Config;
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <libconfig.h>
 
-int load_config(const char* filename, Config* config);
+const char* read_string_setting(config_t* cfg, const char* setting_name, const char* default_value);
+int read_int_setting(config_t* cfg, const char* setting_name, int default_value);
 
 #endif // !__CONFIG_MODULE__
 

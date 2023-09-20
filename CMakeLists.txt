@@ -29,4 +29,4 @@ set(HEADERS
 
 # Create an executable from the sources
 add_executable(xsolarlogger ${SOURCES} ${HEADERS})
-target_link_libraries(xsolarlogger PRIVATE cjson paho-mqtt3c curl)
+target_link_libraries(xsolarlogger PRIVATE cjson paho-mqtt3c curl config)
