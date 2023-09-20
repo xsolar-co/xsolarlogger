@@ -4,6 +4,9 @@
 #include <string.h>
 #include "datalog.h"
 
+//FIXME
+extern char* strdup(const char*);
+
 struct DataLog * cJSON_ParseDataLog(const char * s) {
     struct DataLog * x = NULL;
     if (NULL != s) {
@@ -991,7 +994,8 @@ void cJSON_DeleteDataLog(struct DataLog * x) {
             cJSON_free(x->time);
         }
         if (NULL != x->datalog) {
-        //FIXME    cJSON_free(x->datalog);
+            //FIXME    
+            cJSON_free(x->datalog);
             // free(x->datalog);
         }
         cJSON_free(x);
