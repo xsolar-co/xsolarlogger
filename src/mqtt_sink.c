@@ -18,6 +18,9 @@
 
 #include "mqtt_sink.h"
 
+//FIXME
+extern char* strdup(const char*);
+
 volatile int _connected = 0;
 /**
  * @brief Connection Disconnect callback

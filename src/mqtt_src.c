@@ -17,6 +17,9 @@
 #include "mqtt_src.h"
 #include "squeue.h"
 
+//FIXME
+extern char* strdup(const char*);
+
 volatile MQTTClient_deliveryToken deliveredtoken;
 volatile int connected = 0;
 
@@ -97,7 +100,7 @@ void* mqtt_source_reader_task(void* arg) {
     char mqtt_addr[256];
     sprintf(mqtt_addr, "tcp://%s:%d", cfg->host, cfg->port);
     #ifdef DEBUG
-    printf("connect to %s\n", mqtt_addr);
+    printf("connect to %s\n", mqtt_addr); 
     #endif // DEBUG
 
  
