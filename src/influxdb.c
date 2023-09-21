@@ -1,20 +1,36 @@
+/**
+ * @file influxdb.c
+ * @author longdh (longdh@xsolar.vn)
+ * @brief 
+ * @version 0.1
+ * @date 2023-09-21
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "influxdb.h"
 #include "cjson/cJSON.h"
 #include "squeue.h"
 #include "datalog.h"
+#include <stdio.h>
 
 //FIXME
 extern char* strdup(const char*);
 
 #define INFLUXDB_ADDRESS    "http://192.168.31.166:8086/write?db=lxp"
-#define INFLUXDB2_ADDRESS   "http://103.161.39.186:8086/api/v2/write?org=5b2b5d425dabd4e0&bucket=lxp"
+#define INFLUXDB2_ADDRESS   "http://103.161.39.186:8086/api/v2/write?org=5b2b5d425dabd4e0&bucket=lxpb"
 #define INFLUXDB2_USERNAME  ""
 #define INFLUXDB2_PASSWORD  ""
 #define INFLUXDB2_ORG       "5b2b5d425dabd4e0"
-#define INFLUXDB2_TOKEN     "ygqFkEUqpWUMyyAu-gA_na_IIqfi9oey7oHu-XmgV9RCxpnNvSgUjG2KB1m9vzFyP9FXd2aSkt1LcPjs_mwjow=="
+#define INFLUXDB2_TOKEN     "1Ir9UfVc6xq2Tl8b2G_kn-79N13CeS6Vzr1XSR9SLIt-nktNUlticVYkMSn90aHWVacVy1xEtob8QlzxnJjrkQ=="
 
-
-void sendDataToInfluxDB(const char* data) {
+/**
+ * @brief V1
+ * 
+ * @param data 
+ */
+static void sendDataToInfluxDB(influx_sink_config* cfg, const char* data) {
     CURL* curl;
     CURLcode res;
 
@@ -35,9 +51,12 @@ void sendDataToInfluxDB(const char* data) {
     curl_global_cleanup();
 }
 
-// Function to send data to InfluxDB v2 using libcurl
-// Function to send data to InfluxDB v2
-void sendDataToInfluxDBv2(const char* data) {
+/**
+ * @brief send data to InfluxDB v2 using libcurl
+ * 
+ * @param data 
+ */
+static void sendDataToInfluxDBv2(influx_sink_config* cfg, const char* data) {
     CURL* curl;
     CURLcode res;
 
@@ -46,12 +65,16 @@ void sendDataToInfluxDBv2(const char* data) {
     if (curl) {
         struct curl_slist* headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: text/plain; charset=utf-8");
-        headers = curl_slist_append(headers, "Authorization: Token "INFLUXDB2_TOKEN); // Replace with your actual token
 
-        char url[256]; // Assuming your InfluxDB URL is within 256 characters
-        sprintf(url, INFLUXDB2_ADDRESS); // Modify URL parameters accordingly
+        char auth[512];
+        snprintf(auth, sizeof(auth), "Authorization: Token %s", cfg->token);
+        headers = curl_slist_append(headers, auth);
 
-        curl_easy_setopt(curl, CURLOPT_URL, url);
+        // char url[256]; 
+        // sprintf(url, INFLUXDB2_ADDRESS); // Modify URL parameters accordingly
+
+        // curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_URL, cfg->url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
         res = curl_easy_perform(curl);
@@ -67,7 +90,13 @@ void sendDataToInfluxDBv2(const char* data) {
     curl_global_cleanup();
 }
 
-void* influxdb_write_task(void* arg) {
+/**
+ * @brief Influx Write function
+ * 
+ * @param arg 
+ * @return void* 
+ */
+static void* influxdb_write_task(void* arg) {
     influx_sink_config* cfg = (influx_sink_config*) arg;
     Queue* q = (Queue*)cfg->q;
 
@@ -109,7 +138,7 @@ void* influxdb_write_task(void* arg) {
                     );
 
                 // sendDataToInfluxDB(influxData);
-                sendDataToInfluxDBv2(influxData);
+                sendDataToInfluxDBv2(cfg, influxData);
                
                 // free
                 cJSON_free(jsonp);

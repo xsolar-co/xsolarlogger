@@ -84,7 +84,7 @@ int mqtt_sink_task_init()
         printf("Client ID: %s\n", clientid);
         printf("Topic: %s\n", topic);
 
-        mqtt_sink_init(&mqtt_sink_conf, &mqtt_sink_queue, host, port, username, password, NULL, topic);
+        mqtt_sink_init(&mqtt_sink_conf, &mqtt_sink_queue, host, port, username, password, clientid, topic);
         mqtt_sink_run(&mqtt_sink_conf);
 
     } else {
@@ -122,7 +122,7 @@ int mqtt_source_task_init()
         printf("Client ID: %s\n", clientid);
         printf("Topic: %s\n", topic);
 
-        mqtt_source_init(&mqtt_source_conf, &channel, host, port, username, password, NULL, topic);
+        mqtt_source_init(&mqtt_source_conf, &channel, host, port, username, password, clientid, topic);
         mqtt_source_run(&mqtt_source_conf);
 
 
@@ -199,6 +199,8 @@ int main(int argc, char* argv[]) {
     initQueue(&mqtt_sink_queue);
     mqtt_sink_task_init();
   
+    sleep(1);
+    
     // mqtt source task
     logMessage(LOG_INFO, "Init MQTT source reader task\n");
     initChannel(&channel, 2);

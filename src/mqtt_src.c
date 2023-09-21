@@ -23,6 +23,9 @@ extern char* strdup(const char*);
 volatile MQTTClient_deliveryToken deliveredtoken;
 volatile int connected = 0;
 
+
+#define DEBUG
+
 /**
  * @brief 
  * 
@@ -88,35 +91,37 @@ static void connectionLost(void* context, char* cause) {
  * @param arg 
  * @return void* 
  */
-void* mqtt_source_reader_task(void* arg) {
+static void* mqtt_source_reader_task(void* arg) {
     mqtt_source_config* cfg = (mqtt_source_config*) arg;
 
-    MQTTClient client;
-    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+    MQTTClient client;    
     int rc;
     Channel *c = (Channel*) cfg->c;
 
 
     char mqtt_addr[256];
-    sprintf(mqtt_addr, "tcp://%s:%d", cfg->host, cfg->port);
+    sprintf(mqtt_addr, "mqtt://%s:%d", cfg->host, cfg->port);
     #ifdef DEBUG
-    printf("connect to %s\n", mqtt_addr); 
+    printf("connect to %s, client_id = %s\n", mqtt_addr, cfg->client_id); 
     #endif // DEBUG
 
  
     while (1) {
-        MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;        
+        MQTTClient_create(&client, mqtt_addr, (const char*) cfg->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;
         // conn_opts.username = cfg->username;
         // conn_opts.password = cfg->password;
+        conn_opts.MQTTVersion = 0;
 
         MQTTClient_setCallbacks(client, (void*) c, connectionLost, msgarrvd, delivered);
 
         if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
 
             #ifdef DEBUG
-            printf("Failed to connect, return code %d. Retrying...\n", rc);
+            printf("Failed to connect to source, return code %d. Retrying...\n", rc);
             #endif // DEBUG
             
             sleep(5); // Wait for a while before retrying
@@ -171,7 +176,8 @@ int mqtt_source_init(mqtt_source_config* cfg, Channel *c, const char* host, int 
         cfg->client_id = strdup(client_id);
     else {
         char id[128];
-        sprintf(id, "client-src-%lu\n", (unsigned long)time(NULL));
+        memset(id, 0, sizeof(id));
+        sprintf(id, "src_%lu\n", (unsigned long)time(NULL));
 
         cfg->client_id = strdup(id);
     } 

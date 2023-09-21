@@ -7,6 +7,7 @@
  * 
  * @copyright Copyright (c) 2023
  * 
+ * Note: chu y cho ID-client
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +21,8 @@
 
 //FIXME
 extern char* strdup(const char*);
+
+#define DEBUG
 
 volatile int _connected = 0;
 /**
@@ -69,10 +72,6 @@ void* mqtt_sink_task(void* arg) {
         exit(-1);
     }
 
-    MQTTClient client;
-    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-    int rc;
-
     Queue* q = (Queue*) cfg->q;
     char data[MAX_QUEUE_DATA_SIZE];
 
@@ -86,28 +85,39 @@ void* mqtt_sink_task(void* arg) {
     }
 
     char mqtt_addr[256];
-    sprintf(mqtt_addr, "tcp://%s:%d", cfg->host, cfg->port);
+    sprintf(mqtt_addr, "mqtt://%s:%d", cfg->host, cfg->port);
     #ifdef DEBUG
     printf("connect to %s\n", mqtt_addr);
     #endif // DEBUG
 
     while(1)
     {
-        MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        MQTTClient client;
+        MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+        int rc;
+        
+        if (MQTTCLIENT_SUCCESS != MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_DEFAULT, NULL))
+            printf("Error\n");
+
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;
         conn_opts.username = cfg->username;
         conn_opts.password = cfg->password;
+        conn_opts.connectTimeout = 5; // 5 seconds
+        // conn_opts.MQTTVersion = 3;
 
-        MQTTClient_setCallbacks(client, NULL, connectionLost, NULL, delivered);
+        MQTTClient_setCallbacks(client, NULL, connectionLost, NULL, NULL);
 
 
-        if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
+        if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) 
+        {
             #ifdef DEBUG
-            printf("Failed to connect, return code %d, retrying ...\n", rc);
+            printf("Failed to connect to sink, return code %d, %s retrying ...\n", rc, MQTTClient_strerror(rc));
             #endif
 
-            sleep(5);
+            MQTTClient_destroy(&client);
+
+            sleep(1);
 
             continue;
         }
@@ -127,11 +137,11 @@ void* mqtt_sink_task(void* arg) {
 
                 pubmsg.payload = data;
                 pubmsg.payloadlen = strlen(data);
-                pubmsg.qos = 1;
+                pubmsg.qos = 0;
                 pubmsg.retained = 0;
 
                 MQTTClient_publishMessage(client, cfg->topic, &pubmsg, &token);
-                MQTTClient_waitForCompletion(client, token, 1000);
+                // MQTTClient_waitForCompletion(client, token, 1000);
             }
         }
 
@@ -177,7 +187,7 @@ int mqtt_sink_init(mqtt_sync_config* cfg, Queue* q, const char* host, int port, 
         cfg->client_id = strdup(client_id);
     else {
         char id[128];
-        sprintf(id, "client-%lu\n", (unsigned long)time(NULL));
+        sprintf(id, "cli_%lu\n", (unsigned long)time(NULL));
 
         cfg->client_id = strdup(id);
     } 
