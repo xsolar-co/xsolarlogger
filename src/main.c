@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#include "configuration.h"
 #include "MQTTClient.h"
 #include "cjson/cJSON.h"
 #include "mqtt_sink.h"
@@ -25,7 +26,7 @@
 #include "squeue.h"
 #include "datalog.h"
 #include "influxdb_sink.h"
-#include "configuration.h"
+#include "redis_sink.h"
 
 
 static void daemonize();
@@ -35,6 +36,7 @@ config_t cfg;
  
 Queue   influx_queue;
 Queue   mqtt_sink_queue;
+Queue   redis_sink_queue;
 Channel channel;
 
 influx_sink_config influx_sink_conf;
@@ -107,6 +109,46 @@ int mqtt_sink_task_cleanup()
 {
     mqtt_sink_wait(&mqtt_sink_conf);
     mqtt_sink_term(&mqtt_sink_conf);
+
+    return 0;
+}
+
+redis_sync_config redis_sink_conf;
+int redis_sink_task_init()
+{
+    // read config
+    // Access the 'mqtt-sink' subsetting
+    config_setting_t* redis_sink_config = config_lookup(&cfg, "redis-sink");
+
+    if (redis_sink_config != NULL) {
+        char* host = (char*)read_string_setting(redis_sink_config, "host", "103.161.39.186");
+        int port = read_int_setting(redis_sink_config, "port", 6379);
+        char* username = (char*)read_string_setting(redis_sink_config, "username", "lxdvinhnguyen01");
+        char* password = (char*)read_string_setting(redis_sink_config, "password", "lxd@123");
+        char* clientid = (char*)read_string_setting(redis_sink_config, "clientid", "sinktaskcli-01");
+        char* key = (char*)read_string_setting(redis_sink_config, "key", "lxd_BA31605780");
+
+        printf("Host: %s\n", host);
+        printf("Port: %d\n", port);
+        printf("Username: %s\n", username);
+        printf("Password: %s\n", password);
+        printf("Client ID: %s\n", clientid);
+        printf("Key: %s\n", key);
+
+        redis_sink_init(&redis_sink_conf, &redis_sink_queue, host, port, username, password, clientid, key);
+        redis_sink_run(&redis_sink_conf);
+
+    } else {
+        fprintf(stderr, "The 'redis-sink' subsetting is missing.\n");
+    }   
+
+    return 0;
+}
+
+int redis_sink_task_cleanup()
+{
+    redis_sink_wait(&mqtt_sink_conf);
+    redis_sink_term(&mqtt_sink_conf);
 
     return 0;
 }

@@ -316,5 +316,5 @@ int influx_sink_run(influx_sink_config* cfg)
 int influx_sink_wait(influx_sink_config* cfg)
 {
     return 
-        pthread_join(&cfg->task_thread, NULL);    
+        pthread_join(cfg->task_thread, NULL);    
 }

@@ -233,5 +233,5 @@ int mqtt_source_run(mqtt_source_config* cfg)
 int mqtt_source_wait(mqtt_source_config* cfg)
 {
     return 
-        pthread_join(&cfg->task_thread, NULL);    
+        pthread_join(cfg->task_thread, NULL);    
 }

@@ -243,5 +243,5 @@ int mqtt_sink_run(mqtt_sync_config* cfg)
 int mqtt_sink_wait(mqtt_sync_config* cfg)
 {
     return 
-        pthread_join(&cfg->task_thread, NULL);    
+        pthread_join(cfg->task_thread, NULL);    
 }
