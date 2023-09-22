@@ -14,7 +14,7 @@ set(SOURCES
     src/datalog.c
     src/logger.c
     src/squeue.c
-    src/influxdb.c
+    src/influxdb_sink.c
     src/mqtt_sink.c
     src/mqtt_src.c
     src/configuration.c

@@ -8,22 +8,22 @@
  * @copyright Copyright (c) 2023
  * 
  */
-
-#include "influxdb.h"
+#include "influxdb_sink.h"
 #include "cjson/cJSON.h"
 #include "squeue.h"
 #include "datalog.h"
 #include <stdio.h>
 
+
 //FIXME
 extern char* strdup(const char*);
 
-#define INFLUXDB_ADDRESS    "http://192.168.31.166:8086/write?db=lxp"
-#define INFLUXDB2_ADDRESS   "http://103.161.39.186:8086/api/v2/write?org=5b2b5d425dabd4e0&bucket=lxpb"
-#define INFLUXDB2_USERNAME  ""
-#define INFLUXDB2_PASSWORD  ""
-#define INFLUXDB2_ORG       "5b2b5d425dabd4e0"
-#define INFLUXDB2_TOKEN     "1Ir9UfVc6xq2Tl8b2G_kn-79N13CeS6Vzr1XSR9SLIt-nktNUlticVYkMSn90aHWVacVy1xEtob8QlzxnJjrkQ=="
+// #define INFLUXDB_ADDRESS    "http://192.168.31.166:8086/write?db=lxp"
+// #define INFLUXDB2_ADDRESS   "http://103.161.39.186:8086/api/v2/write?org=5b2b5d425dabd4e0&bucket=lxpb"
+// #define INFLUXDB2_USERNAME  ""
+// #define INFLUXDB2_PASSWORD  ""
+// #define INFLUXDB2_ORG       "5b2b5d425dabd4e0"
+// #define INFLUXDB2_TOKEN     "1Ir9UfVc6xq2Tl8b2G_kn-79N13CeS6Vzr1XSR9SLIt-nktNUlticVYkMSn90aHWVacVy1xEtob8QlzxnJjrkQ=="
 
 /**
  * @brief V1
@@ -37,7 +37,7 @@ static void sendDataToInfluxDB(influx_sink_config* cfg, const char* data) {
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
     if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, INFLUXDB_ADDRESS);
+        curl_easy_setopt(curl, CURLOPT_URL, cfg->url);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
         res = curl_easy_perform(curl);
 
@@ -90,6 +90,12 @@ static void sendDataToInfluxDBv2(influx_sink_config* cfg, const char* data) {
     curl_global_cleanup();
 }
 
+/**
+ * @brief Datalog to influxDB line format 
+ * 
+ * @param data 
+ * @param influxDBLine 
+ */
 static void convertToInfluxDBLine(struct DataLog* data, char* influxDBLine) {
     sprintf(influxDBLine,
         "lxpvtf status=%ld,v_pv_1=%lf,v_pv_2=%ld,v_pv_3=%lf,v_bat=%ld,soc=%ld,soh=%ld,"
@@ -106,7 +112,7 @@ static void convertToInfluxDBLine(struct DataLog* data, char* influxDBLine) {
         "bat_status_5=%ld,bat_status_6=%ld,bat_status_7=%ld,bat_status_8=%ld,bat_status_9=%ld,"
         "bat_status_inv=%ld,bat_count=%ld,bat_capacity=%ld,bat_current=%ld,bms_event_1=%ld,"
         "bms_event_2=%ld,max_cell_voltage=%ld,min_cell_voltage=%ld,max_cell_temp=%ld,"
-        "min_cell_temp=%ld,bms_fw_update_state=%ld,cycle_count=%ld,vbat_inv=%lf,time=%ld,datalog=%s",
+        "min_cell_temp=%ld,bms_fw_update_state=%ld,cycle_count=%ld,vbat_inv=%lf,time=%ld,datalog=\"%s\"\n",
         *data->status, *data->v_pv_1, *data->v_pv_2, *data->v_pv_3, *data->v_bat, *data->soc, *data->soh,
         *data->p_pv, *data->p_pv_1, *data->p_pv_2, *data->p_pv_3, *data->p_charge, *data->p_discharge,
         *data->v_ac_r, *data->v_ac_s, *data->v_ac_t, *data->f_ac, *data->p_inv, *data->p_rec, *data->pf,

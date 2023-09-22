@@ -1,11 +1,20 @@
-// main
+/**
+ * @file main.c
+ * @author longdh (longdh@xsolar.vn)
+ * @brief 
+ * @version 0.1
+ * @date 2023-09-22
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 #include <unistd.h>
 #include <stdlib.h>
 #include <libconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <unistd.h> // for sleep
+#include <unistd.h>
 #include <getopt.h>
 
 #include "MQTTClient.h"
@@ -15,7 +24,7 @@
 #include "logger.h"
 #include "squeue.h"
 #include "datalog.h"
-#include "influxdb.h"
+#include "influxdb_sink.h"
 #include "configuration.h"
 
 
