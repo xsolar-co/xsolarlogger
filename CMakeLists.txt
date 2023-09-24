@@ -19,6 +19,7 @@ set(SOURCES
     src/mqtt_src.c
     src/redis_sink.c
     src/kafka_sink.c
+    src/nats_sink.c
     src/configuration.c
 )
 
@@ -31,4 +32,4 @@ set(HEADERS
 
 # Create an executable from the sources
 add_executable(xsolarlogger ${SOURCES} ${HEADERS})
-target_link_libraries(xsolarlogger PRIVATE cjson paho-mqtt3c curl config pthread hiredis rdkafka)
+target_link_libraries(xsolarlogger PRIVATE cjson paho-mqtt3c curl config pthread hiredis rdkafka nats ssl crypto)
