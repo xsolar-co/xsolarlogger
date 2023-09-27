@@ -18,6 +18,7 @@
 
 #include "kafka_sink.h"
 #include <librdkafka/rdkafka.h>
+#include "error.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -39,7 +40,7 @@ void* kafka_sink_task(void* arg) {
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EGENERR);
     }
 
     Queue* q = (Queue*) cfg->q;
@@ -51,7 +52,7 @@ void* kafka_sink_task(void* arg) {
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EQUERR);
     }
 
     // kafka connect here
@@ -68,14 +69,14 @@ void* kafka_sink_task(void* arg) {
         if (rd_kafka_conf_set(conf, "bootstrap.servers", broker, errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK) {
             fprintf(stderr, "Error configuring Kafka: %s\n", errstr);
             
-            exit(1);
+            exit(ESVRERR);
         }
 
         // Create a Kafka producer instance
         rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
         if (!rk) {
             fprintf(stderr, "Error creating Kafka producer: %s\n", errstr);
-            exit(1);
+            exit(ESVRERR);
         }
 
         // Create a Kafka topic producer instance
@@ -85,7 +86,7 @@ void* kafka_sink_task(void* arg) {
             fprintf(stderr, "Error creating topic object: %s\n", rd_kafka_err2str(rd_kafka_last_error()));
             rd_kafka_destroy(rk);
 
-            exit(1);
+            exit(ESVRERR);
         }
 
         while (1) 

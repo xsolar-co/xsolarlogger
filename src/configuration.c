@@ -1,4 +1,5 @@
 #include "configuration.h"
+#include "error.h"
 
 // Function to read a string value from a config setting with a default value
 const char* read_string_setting(config_setting_t* cfg, const char* setting_name, const char* default_value) {

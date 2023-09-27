@@ -18,8 +18,9 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "nats_sink.h"
 #include <nats/nats.h>
+#include "nats_sink.h"
+#include "error.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -41,7 +42,7 @@ void* nats_sink_task(void* arg) {
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EGENERR);
     }
 
     Queue* q = (Queue*) cfg->q;
@@ -53,7 +54,7 @@ void* nats_sink_task(void* arg) {
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EQUERR);
     }
 
     // nats connect here
@@ -72,7 +73,7 @@ void* nats_sink_task(void* arg) {
             fprintf(stderr, "Failed to connect to NATS: %s\n", natsStatus_GetText(status));
             nats_Close();
 
-            exit(1);
+            exit(ESVRERR);
         }
 
         while (1) 

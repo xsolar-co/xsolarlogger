@@ -16,6 +16,7 @@
 #include "MQTTClient.h"
 #include "mqtt_src.h"
 #include "squeue.h"
+#include "error.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -107,8 +108,13 @@ static void* mqtt_source_reader_task(void* arg) {
 
  
     while (1) {
-        MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;        
-        MQTTClient_create(&client, mqtt_addr, (const char*) cfg->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer; 
+
+        if ( (rc = MQTTClient_create(&client, mqtt_addr, (const char*) cfg->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS)
+        {
+            printf("Create Client Error\n");
+            exit(ESVRERR);
+        }
 
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;
@@ -118,7 +124,8 @@ static void* mqtt_source_reader_task(void* arg) {
 
         MQTTClient_setCallbacks(client, (void*) c, connectionLost, msgarrvd, delivered);
 
-        if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
+        if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) 
+        {
 
             #ifdef DEBUG
             printf("Failed to connect to source, return code %d. Retrying...\n", rc);

@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#include "error.h"
 #include "configuration.h"
 #include "MQTTClient.h"
 #include "cjson/cJSON.h"

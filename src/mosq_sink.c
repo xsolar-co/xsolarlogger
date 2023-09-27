@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <time.h>
 
+#include "error.h"
 #include "mosq_sink.h"
 
 //FIXME
@@ -49,9 +50,12 @@ static void on_connect(struct mosquitto *mosq, void *obj, int rc)
  */
 static void on_disconnect(struct mosquitto *mosq, void *obj, int rc) 
 {
-    if (rc == MOSQ_ERR_SUCCESS) {
+    if (rc == MOSQ_ERR_SUCCESS) 
+    {
         printf("Disconnecting gracefully...\n");
-    } else {
+    } 
+    else 
+    {
         printf("Disconnected unexpectedly, will try to reconnect...\n");
         mosquitto_reconnect(mosq);
     }
@@ -99,7 +103,7 @@ void* mosq_sink_task(void* arg)
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EQUERR);
     }
 
     // Initialize mosquitto library
@@ -113,7 +117,7 @@ void* mosq_sink_task(void* arg)
     if (!mosq) 
     {
         fprintf(stderr, "Error: Out of memory.\n");
-        exit(1);
+        exit(ESYSERR);
     }
 
     // Set callback functions
@@ -125,7 +129,7 @@ void* mosq_sink_task(void* arg)
     if (rc != MOSQ_ERR_SUCCESS) 
     {
         fprintf(stderr, "Unable to connect (%d): %s\n", rc, mosquitto_strerror(rc));
-        exit(1);
+        exit(ESVRERR);
     }
 
     while (1) 

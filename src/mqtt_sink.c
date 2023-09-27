@@ -19,6 +19,7 @@
 
 #include "mqtt_sink.h"
 #include "MQTTClient.h"
+#include "error.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -70,7 +71,7 @@ void* mqtt_sink_task(void* arg) {
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(ESYSERR);
     }
 
     Queue* q = (Queue*) cfg->q;
@@ -82,7 +83,7 @@ void* mqtt_sink_task(void* arg) {
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EQUERR);
     }
 
     char mqtt_addr[256];
@@ -100,7 +101,7 @@ void* mqtt_sink_task(void* arg) {
         if (MQTTCLIENT_SUCCESS != MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_DEFAULT, NULL))
         {
             printf("Create Client Error\n");
-            exit(1);
+            exit(ESVRERR);
         }
             
 

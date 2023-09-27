@@ -8,11 +8,12 @@
  * @copyright Copyright (c) 2023
  * 
  */
+#include <stdio.h>
 #include "influxdb_sink.h"
 #include "cjson/cJSON.h"
-#include "squeue.h"
 #include "datalog.h"
-#include <stdio.h>
+#include "error.h"
+
 
 
 //FIXME
@@ -136,12 +137,14 @@ static void convertToInfluxDBLine(struct DataLog* data, char* influxDBLine) {
  * @param arg 
  * @return void* 
  */
-static void* influxdb_write_task(void* arg) {
+static void* influxdb_write_task(void* arg) 
+{
     influx_sink_config* cfg = (influx_sink_config*) arg;
     Queue* q = (Queue*)cfg->q;
 
     char data[2048];
-    while (1) {        
+    while (1) 
+    {        
         int ret = wait_dequeue(q, data);
 
         if (ret == 0) {

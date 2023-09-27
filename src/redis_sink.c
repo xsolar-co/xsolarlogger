@@ -18,6 +18,7 @@
 
 #include "redis_sink.h"
 #include <hiredis/hiredis.h>
+#include "error.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -37,7 +38,7 @@ void* redis_sink_task(void* arg) {
         printf("Config error ...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EGENERR);
     }
 
     // redis task
@@ -50,7 +51,7 @@ void* redis_sink_task(void* arg) {
         printf("Error queue...\n");
         #endif // DEBUG
         
-        exit(-1);
+        exit(EQUERR);
     }
     
     while(1)

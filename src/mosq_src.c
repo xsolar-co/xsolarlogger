@@ -14,7 +14,7 @@
 #include <pthread.h>
 #include <mosquitto.h>
 #include "mosq_src.h"
-#include "squeue.h"
+#include "error.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -116,7 +116,7 @@ static void* mosq_source_reader_task(void* arg)
     if (!mosq) 
     {
         fprintf(stderr, "Error: Out of memory.\n");
-        exit(1);
+        exit(ESYSERR);
     }
 
     // Set callback functions
@@ -129,7 +129,7 @@ static void* mosq_source_reader_task(void* arg)
     if (rc != MOSQ_ERR_SUCCESS) 
     {
         fprintf(stderr, "Unable to connect (%d): %s\n", rc, mosquitto_strerror(rc));
-        exit(1);
+        exit(ESVRERR);
     }
 
     // Main loop
