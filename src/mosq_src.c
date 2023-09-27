@@ -1,5 +1,5 @@
 /**
- * @file mosq_sink.c
+ * @file mosq_src.c
  * @author longdh (longdh@xsolar.vn)
  * @brief 
  * @version 0.1
@@ -7,25 +7,52 @@
  * 
  * @copyright Copyright (c) 2023
  * 
- * Note: chu y cho ID-client
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <pthread.h>
-#include <unistd.h>
-#include <time.h>
-
-#include "mosq_sink.h"
+#include <mosquitto.h>
+#include "mosq_src.h"
+#include "squeue.h"
 
 //FIXME
 extern char* strdup(const char*);
 
+static volatile int connected = 0;
+
 #define DEBUG
 
 /**
- * @brief connect callback
+ * @brief message arrive callback
+ * 
+ * @param mosq 
+ * @param obj 
+ * @param message 
+ */
+static void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message) 
+{
+    mosq_source_config* cfg = (mosq_source_config*) obj;
+
+    int i = 0;
+    Channel *c = (Channel*) cfg->c;
+    
+    #ifdef DEBUG
+    // Assuming message is in JSON format
+    // printf("Received message %d: %s: %s\n",len, topicName, payloadptr);
+    #endif // DEBUG    
+
+    // send to queue
+    for (i=0; i< c->total; i++) 
+    {
+        // text data
+        enqueue( c->queue[i], (char*) message->payload);
+    }    
+    
+}
+
+/**
+ * @brief connected callback
  * 
  * @param mosq 
  * @param obj 
@@ -33,15 +60,23 @@ extern char* strdup(const char*);
  */
 static void on_connect(struct mosquitto *mosq, void *obj, int rc) 
 {
-    if (rc == 0) {
+    if (rc == 0) 
+    {
+        mosq_source_config* cfg = (mosq_source_config*) obj;
+
         printf("Connected successfully\n");
-    } else {
+        // Subscribe to the desired topic after successful connection
+        mosquitto_subscribe(mosq, NULL, cfg->topic, 0);
+
+    } 
+    else 
+    {
         fprintf(stderr, "Connect failed: %s\n", mosquitto_strerror(rc));
     }
 }
 
 /**
- * @brief 
+ * @brief dis-connect callback
  * 
  * @param mosq 
  * @param obj 
@@ -49,67 +84,35 @@ static void on_connect(struct mosquitto *mosq, void *obj, int rc)
  */
 static void on_disconnect(struct mosquitto *mosq, void *obj, int rc) 
 {
-    if (rc == MOSQ_ERR_SUCCESS) {
+    if (rc == MOSQ_ERR_SUCCESS) 
+    {
         printf("Disconnecting gracefully...\n");
-    } else {
+    } 
+    else 
+    {
         printf("Disconnected unexpectedly, will try to reconnect...\n");
         mosquitto_reconnect(mosq);
     }
 }
 
 /**
- * @brief 
- * 
- * @param mosq 
- * @param topic 
- * @param message 
- */
-static void send_to_mqtt(struct mosquitto *mosq, const char* topic, const char* message) 
-{
-    int rc = mosquitto_publish(mosq, NULL, topic, strlen(message), message, 0, false);
-    if (rc != MOSQ_ERR_SUCCESS) {
-        fprintf(stderr, "Unable to publish (%d): %s\n", rc, mosquitto_strerror(rc));
-    }
-}
-
-/**
- * @brief sink thread (forward thread)
+ * @brief Main thread
  * 
  * @param arg 
  * @return void* 
  */
-void* mosq_sink_task(void* arg) 
+static void* mosq_source_reader_task(void* arg) 
 {
-    mosq_sync_config* cfg= (mosq_sync_config*) arg;
-    if (cfg == NULL)
-    {
-        #ifdef DEBUG
-        printf("Error queue...\n");
-        #endif // DEBUG
-        
-        exit(-1);
-    }
-
-    Queue* q = (Queue*) cfg->q;
-    char data[MAX_QUEUE_DATA_SIZE];
-
-    if (q == NULL)
-    {
-        #ifdef DEBUG
-        printf("Error queue...\n");
-        #endif // DEBUG
-        
-        exit(-1);
-    }
-
+    mosq_source_config* cfg = (mosq_source_config*) arg;
+    
     // Initialize mosquitto library
     mosquitto_lib_init();
 
     struct mosquitto *mosq = NULL;
     int rc;
+ 
+    mosq = mosquitto_new(NULL, true, (void*) cfg);
 
-    // Create a mosquitto client instance
-    mosq = mosquitto_new(NULL, true, NULL);
     if (!mosq) 
     {
         fprintf(stderr, "Error: Out of memory.\n");
@@ -117,6 +120,7 @@ void* mosq_sink_task(void* arg)
     }
 
     // Set callback functions
+    mosquitto_message_callback_set(mosq, on_message);
     mosquitto_connect_callback_set(mosq, on_connect);
     mosquitto_disconnect_callback_set(mosq, on_disconnect);
 
@@ -128,17 +132,16 @@ void* mosq_sink_task(void* arg)
         exit(1);
     }
 
+    // Main loop
     while (1) 
     {
-        if (wait_dequeue(q, data))
+        rc = mosquitto_loop(mosq, -1, 1);
+        if (rc != MOSQ_ERR_SUCCESS) 
         {
-            #ifdef DEBUG
-            printf("%s\n", data);
-            #endif // DEBUG
-
-            // Publish to MQTT broker and topic
-            send_to_mqtt(mosq, cfg->topic, data);
-
+            fprintf(stderr, "Mosquitto loop error (%d): %s\n", rc, mosquitto_strerror(rc));
+            sleep(2); // Wait for a while before reconnecting
+            
+            mosquitto_reconnect(mosq);
         }
     }
 
@@ -146,12 +149,11 @@ void* mosq_sink_task(void* arg)
     mosquitto_destroy(mosq);
     mosquitto_lib_cleanup();
 
-
     return NULL;
 }
 
 /**
- * @brief Init sync task
+ * @brief Init Source task
  * 
  * @param cfg 
  * @param host 
@@ -160,11 +162,11 @@ void* mosq_sink_task(void* arg)
  * @param password 
  * @return int 
  */
-int mosq_sink_init(mosq_sync_config* cfg, Queue* q, const char* host, int port, const char* username, const char* password, const char* client_id, const char* topic)
+int mosq_source_init(mosq_source_config* cfg, Channel *c, const char* host, int port, const char* username, const char* password, const char* client_id, const char* topic)
 {
-    memset(cfg, 0, sizeof (mosq_sync_config));
+    memset(cfg, 0, sizeof (mosq_source_config));
 
-    cfg->q = q;
+    cfg->c = c;
 
     if (host != NULL)
         cfg->host = strdup(host);
@@ -183,7 +185,8 @@ int mosq_sink_init(mosq_sync_config* cfg, Queue* q, const char* host, int port, 
         cfg->client_id = strdup(client_id);
     else {
         char id[128];
-        sprintf(id, "cli_%lu\n", (unsigned long)time(NULL));
+        memset(id, 0, sizeof(id));
+        sprintf(id, "src_%lu\n", (unsigned long)time(NULL));
 
         cfg->client_id = strdup(id);
     } 
@@ -197,7 +200,7 @@ int mosq_sink_init(mosq_sync_config* cfg, Queue* q, const char* host, int port, 
  * @param cfg 
  * @return int 
  */
-int mosq_sink_term(mosq_sync_config* cfg)
+int mosq_source_term(mosq_source_config* cfg)
 {
     if (cfg->host != NULL)
         free(cfg->host);
@@ -223,10 +226,10 @@ int mosq_sink_term(mosq_sync_config* cfg)
  * @param cfg 
  * @return int 
  */
-int mosq_sink_run(mosq_sync_config* cfg)
+int mosq_source_run(mosq_source_config* cfg)
 {   
     return 
-        pthread_create(&cfg->task_thread, NULL, mosq_sink_task, cfg);
+        pthread_create(&cfg->task_thread, NULL, mosq_source_reader_task, cfg);
     
 }
 
@@ -236,7 +239,7 @@ int mosq_sink_run(mosq_sync_config* cfg)
  * @param cfg 
  * @return int 
  */
-int mosq_sink_wait(mosq_sync_config* cfg)
+int mosq_source_wait(mosq_source_config* cfg)
 {
     return 
         pthread_join(cfg->task_thread, NULL);    
