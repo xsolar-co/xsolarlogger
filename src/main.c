@@ -40,6 +40,7 @@ Queue   mqtt_sink_queue;
 Queue   redis_sink_queue;
 Channel channel;
 
+#ifdef INFLUXDB
 influx_sink_config influx_sink_conf;
 int influx_sink_task_init()
 {
@@ -73,7 +74,19 @@ int influx_sink_task_cleanup()
 
     return 0;
 }
+#else
+int influx_sink_task_init()
+{
+    return 0;
+}
 
+int influx_sink_task_cleanup()
+{
+    return 0;
+}
+#endif
+
+#ifdef PAHO
 mqtt_sync_config mqtt_sink_conf;
 int mqtt_sink_task_init()
 {
@@ -113,6 +126,17 @@ int mqtt_sink_task_cleanup()
 
     return 0;
 }
+#else
+int mqtt_sink_task_init()
+{
+    return 0;
+}
+
+int mqtt_sink_task_cleanup()
+{
+    return 0;
+}
+#endif
 
 #ifdef REDIS
 redis_sync_config redis_sink_conf;
@@ -156,6 +180,7 @@ int redis_sink_task_cleanup()
 }
 #endif
 
+#ifdef PAHO
 mqtt_source_config mqtt_source_conf;
 int mqtt_source_task_init()
 {
@@ -201,7 +226,16 @@ int mqtt_source_task_cleanup()
 
     return 0;
 }
-
+#else
+int mqtt_source_task_init()
+{
+    return 0;
+}
+int mqtt_source_task_cleanup()
+{
+    return 0;
+}
+#endif
 
 int main(int argc, char* argv[]) {
     int daemonize_flag = 0;

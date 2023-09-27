@@ -1,10 +1,20 @@
 # Minimum required version of CMake
 cmake_minimum_required(VERSION 3.0)
 
-#set(KAFKA ON)
-set(REDIS ON)
-#set(NATS ON)
-#set(MOSQUITTO ON)
+option(CROSS_COMPILE_ARM64 "Cross compile for ARM64" OFF)
+option(KAFKA "Kafka sink support" OFF)
+option(REDIS "Redis sink support" OFF)
+option(NATS "NATS sink support" OFF)
+option(MOSQUITTO "mosquitto src-sink support" OFF)
+option(PAHO "paho.mqtt.c src-sink support" OFF)
+option(INFLUXDB "influxdb sink support" OFF)
+
+
+if(CROSS_COMPILE_ARM64)
+    message("Cross-compiling for ARM64")
+    set(CMAKE_TOOLCHAIN_FILE "cmake/toolchain-arm64.cmake")
+endif()
+
 
 # Project name
 project(xsolarlogger)
@@ -18,10 +28,7 @@ set(SOURCES
     src/main.c
     src/datalog.c
     src/logger.c
-    src/squeue.c
-    src/influxdb_sink.c
-    src/mqtt_sink.c
-    src/mqtt_src.c    
+    src/squeue.c    
     src/configuration.c
 )
 
@@ -33,17 +40,17 @@ set(HEADERS
 )
 
 set(LINK_LIBRARIES
-    cjson paho-mqtt3c curl config pthread mosquitto)
+    cjson config pthread)
 
-if(DEFINED KAFKA)
-    message("KAFKA flag is defined. Including kafka_sink.c and linking with librdkafka.")
+if(KAFKA)
+    message("KAFKA flag is defined.")
     list(APPEND SOURCES src/kafka_sink.c)
     list(APPEND LINK_LIBRARIES rdkafka)
 else()
-    message("KAFKA flag is not defined. Not including kafka_sink.c.")
+    message("KAFKA flag is not defined!")
 endif()
 
-if(DEFINED REDIS)
+if(REDIS)
     message("REDIS flag is defined.")
     list(APPEND SOURCES src/redis_sink.c)
     list(APPEND LINK_LIBRARIES hiredis)
@@ -51,7 +58,7 @@ else()
     message("REDIS flag is not defined!")
 endif()
 
-if(DEFINED NATS)
+if(NATS)
     message("NATS flag is defined.")
     list(APPEND SOURCES src/nats_sink.c)
     list(APPEND LINK_LIBRARIES nats ssl crypto)
@@ -59,7 +66,15 @@ else()
     message("NATS flag is not defined!")
 endif()
 
-if(DEFINED MOSQUITTO)
+if(INFLUXDB)
+    message("INFLUXDB flag is defined.")
+    list(APPEND SOURCES src/influxdb_sink.c)
+    list(APPEND LINK_LIBRARIES curl)
+else()
+    message("INFLUXDB flag is not defined!")
+endif()
+
+if(MOSQUITTO)
     message("MOSQUITTO flag is defined.")
     list(APPEND SOURCES src/mosq_sink.c)
     list(APPEND SOURCES src/mosq_src.c)
@@ -68,6 +83,14 @@ else()
     message("MOSQUITTO flag is not defined!")
 endif()
 
+if(PAHO)
+    message("PAHO-mqtt flag is defined.")
+    list(APPEND SOURCES src/mqtt_sink.c)
+    list(APPEND SOURCES src/mqtt_src.c)
+    list(APPEND LINK_LIBRARIES paho-mqtt3c)
+else()
+    message("PAHO-mqtt flag is not defined!")
+endif()
 
 # Create an executable from the sources
 add_executable(xsolarlogger ${SOURCES} ${HEADERS})
