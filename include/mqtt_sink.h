@@ -1,7 +1,6 @@
 #ifndef __MQTT_SINK_H__
 #define __MQTT_SINK_H__
 
-#include "MQTTClient.h"
 #include "squeue.h"
 
 typedef struct {

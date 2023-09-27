@@ -18,6 +18,7 @@
 #include <time.h>
 
 #include "mqtt_sink.h"
+#include "MQTTClient.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -97,7 +98,11 @@ void* mqtt_sink_task(void* arg) {
         int rc;
         
         if (MQTTCLIENT_SUCCESS != MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_DEFAULT, NULL))
-            printf("Error\n");
+        {
+            printf("Create Client Error\n");
+            exit(1);
+        }
+            
 
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;

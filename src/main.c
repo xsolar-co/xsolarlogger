@@ -147,8 +147,8 @@ int redis_sink_task_init()
 
 int redis_sink_task_cleanup()
 {
-    redis_sink_wait(&mqtt_sink_conf);
-    redis_sink_term(&mqtt_sink_conf);
+    redis_sink_wait(&redis_sink_conf);
+    redis_sink_term(&redis_sink_conf);
 
     return 0;
 }
