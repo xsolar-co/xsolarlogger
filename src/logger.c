@@ -6,22 +6,22 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-static FILE* logFile = NULL;
+static FILE* log_file = NULL;
 static pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 
-void initLogger(const char* logFilePath) {
-    logFile = fopen(logFilePath, "a");
-    if (!logFile) {
+void init_logger(const char* logFilePath) {
+    log_file = fopen(logFilePath, "a");
+    if (!log_file) {
         perror("Error opening log file");
         exit(EXIT_FAILURE);
     }
 }
 
-void cleanupLogger() {
-    fclose(logFile);
+void cleanup_logger() {
+    fclose(log_file);
 }
 
-void logMessage(LogLevel level, const char* message, ...) {
+void log_message(LogLevel level, const char* message, ...) {
     va_list args;
     va_start(args, message);
 
@@ -42,7 +42,7 @@ void logMessage(LogLevel level, const char* message, ...) {
             break;
     }
 
-    vfprintf(logFile, message, args);
+    vfprintf(log_file, message, args);
 
     pthread_mutex_unlock(&logLock);
 

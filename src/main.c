@@ -114,6 +114,7 @@ int mqtt_sink_task_cleanup()
     return 0;
 }
 
+#ifdef REDIS
 redis_sync_config redis_sink_conf;
 int redis_sink_task_init()
 {
@@ -153,6 +154,7 @@ int redis_sink_task_cleanup()
 
     return 0;
 }
+#endif
 
 mqtt_source_config mqtt_source_conf;
 int mqtt_source_task_init()
@@ -239,22 +241,22 @@ int main(int argc, char* argv[]) {
     }
 
     // loadConfig(config_file);
-    initLogger("logfile.log");
+    init_logger("logfile.log");
 
     // influx task
-    logMessage(LOG_INFO, "Init Influx send task\n");
+    log_message(LOG_INFO, "Init Influx send task\n");
     initQueue(&influx_queue);
     influx_sink_task_init();
 
     // mqtt target task
-    logMessage(LOG_INFO, "Init MQTT send task\n");
+    log_message(LOG_INFO, "Init MQTT send task\n");
     initQueue(&mqtt_sink_queue);
     mqtt_sink_task_init();
   
     sleep(1);
     
     // mqtt source task
-    logMessage(LOG_INFO, "Init MQTT source reader task\n");
+    log_message(LOG_INFO, "Init MQTT source reader task\n");
     initChannel(&channel, 2);
     channel.queue[0] = &influx_queue;
     channel.queue[1] = &mqtt_sink_queue;
@@ -264,7 +266,7 @@ int main(int argc, char* argv[]) {
         sleep(1);
     }
 
-    cleanupLogger();
+    cleanup_logger();
     mqtt_source_task_cleanup();
     influx_sink_task_cleanup();
     mqtt_sink_task_cleanup();

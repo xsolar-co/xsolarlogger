@@ -9,8 +9,8 @@ typedef enum {
     LOG_ERROR
 } LogLevel;
 
-void initLogger(const char* logFilePath);
-void cleanupLogger();
-void logMessage(LogLevel level, const char* message, ...);
+void init_logger(const char* logFilePath);
+void cleanup_logger();
+void log_message(LogLevel level, const char* message, ...);
 
 #endif // LOGGER_H
