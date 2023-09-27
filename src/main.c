@@ -10,25 +10,35 @@
  */
 #include <unistd.h>
 #include <stdlib.h>
-#include <libconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <getopt.h>
 
+#include <libconfig.h>
+
 #include "error.h"
 #include "configuration.h"
+
+#ifdef PAHO
 #include "MQTTClient.h"
-#include "cjson/cJSON.h"
 #include "mqtt_sink.h"
 #include "mqtt_src.h"
+#endif
+
+#include "cjson/cJSON.h"
 #include "logger.h"
 #include "squeue.h"
 #include "datalog.h"
-#include "influxdb_sink.h"
-#include "redis_sink.h"
 
+#ifdef INFLUXDB
+#include "influxdb_sink.h"
+#endif
+
+#ifdef REDIS
+#include "redis_sink.h"
+#endif
 
 static void daemonize();
 
