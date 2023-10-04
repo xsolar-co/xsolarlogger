@@ -101,7 +101,7 @@ static void* mqtt_source_reader_task(void* arg) {
 
 
     char mqtt_addr[256];
-    sprintf(mqtt_addr, "mqtt://%s:%d", cfg->host, cfg->port);
+    sprintf(mqtt_addr, "tcp://%s:%d", cfg->host, cfg->port);
     #ifdef DEBUG
     printf("connect to %s, client_id = %s\n", mqtt_addr, cfg->client_id); 
     #endif // DEBUG
@@ -112,7 +112,7 @@ static void* mqtt_source_reader_task(void* arg) {
 
         if ( (rc = MQTTClient_create(&client, mqtt_addr, (const char*) cfg->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS)
         {
-            printf("Create Client Error\n");
+            printf("Create Client-source Error, error code: %d\n", rc);
             exit(ESVRERR);
         }
 

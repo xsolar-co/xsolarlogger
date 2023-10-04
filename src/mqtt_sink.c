@@ -98,9 +98,9 @@ void* mqtt_sink_task(void* arg) {
         MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
         int rc;
         
-        if (MQTTCLIENT_SUCCESS != MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_DEFAULT, NULL))
+        if (MQTTCLIENT_SUCCESS != (rc = MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_DEFAULT, NULL)))
         {
-            printf("Create Client Error\n");
+            printf("Create ClientSink Error, code = %d\n", rc);
             exit(ESVRERR);
         }
             
