@@ -18,10 +18,13 @@ Lấy dữ liệu của LXP inverter từ MQTT rồi đẩy qua InfluxDB 1/2, l�
 # Biên dịch cho Rasberry PI 4, Orange Pi3, ... (arm64)
  
 ## Cài đặt công cụ phụ trợ
-	sudo apt-get install gcc-aarch64-linux-gnu
+	sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+## Tải nén sysroot của arm64 tới /tmp
+	tar -xf arm64-root.tar.gz -C /tmp
 
 ## Biên dịch
-	mkdir build
-	cd build
-	cmake ..
+	mkdir build-arm
+	cd build-arm
+	cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain-arm64.cmake ..
 	make
