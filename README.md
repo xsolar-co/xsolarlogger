@@ -51,6 +51,7 @@ File config lưu tại địa chỉ /usr/local/zsolar/etc, sửa đổi từ dò
 
 
 Chú ý các tham số nguồn (src) và đích (sink)
+
 	mqtt-src = 
 	{
 		host = "192.168.31.166";
