@@ -5,7 +5,7 @@ Lấy dữ liệu của LXP inverter từ MQTT rồi đẩy qua InfluxDB 1/2, l�
 # Biên dịch trên Desktop (amd64)
 ## Cài đặt thư viện phụ trợ với Ubuntu (Biên dịch với Desktop - amd64)
 
-    sudo apt-get install build-essential cmake libpaho-mqtt-dev libmosquitto-dev libcurl4-openssl-dev libhiredis-dev
+    sudo apt-get install build-essential cmake libconifig-dev libcjson-dev libpaho-mqtt-dev libmosquitto-dev libcurl4-openssl-dev libhiredis-dev librdkafka-dev
 
 ## Biên dịch
 

@@ -30,6 +30,8 @@ set(SOURCES
     src/logger.c
     src/squeue.c    
     src/configuration.c
+    src/list.c
+    src/hashtable.c
 )
 
 # List of header files
