@@ -47,6 +47,7 @@ Khởi chạy ứng dụng tự động với systemd
 
 # Thiết lập hệ thống
 File config lưu tại địa chỉ /usr/local/zsolar/etc, sửa đổi từ dòng lệnh bằng lệnh
+
 	sudo nano /usr/local/zsolar/etc/config.cfg
 
 
