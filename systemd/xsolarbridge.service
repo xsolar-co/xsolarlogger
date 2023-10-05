@@ -1,0 +1,11 @@
+# /etc/systemd/system/xsolarbridge.service
+[Unit]
+Description=XSolar Bridge Deamon
+After=network.target
+
+[Service]
+ExecStart=/usr/local/xsolar/bin/xsolarbridge
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
