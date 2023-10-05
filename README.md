@@ -1,6 +1,6 @@
-# xsolarbridge
+# xsolarlogger
 
-Lấy dữ liệu từ MQTT nguồn rồi đẩy vào  MQTT server khác.
+Lấy dữ liệu của LXP inverter từ MQTT rồi đẩy qua InfluxDB 1/2, lưu dữ liệu cuối cùng vào redis, và backup gửi vào một MQTT server khác.
 
 # Biên dịch trên Desktop (amd64)
 ## Cài đặt thư viện phụ trợ với Ubuntu (Biên dịch với Desktop - amd64)
@@ -35,9 +35,9 @@ Biên dịch sử dụng thư viện Paho
 	
 	cmake -DPAHO 
 
-Biên dịch hỗ trợ Mosquitto Client
+Biên dịch hỗ trợ Redis
 	
-	cmake -DMOSQUITTO
+	cmake -DREDIS
 
 
 ## Cài đặt lên thiết bị (arm64)
@@ -52,14 +52,14 @@ Khởi chạy ứng dụng với ssh
 
 Khởi chạy ứng dụng tự động với systemd
 
-	sudo cp ./systemd/xsolarbridge.service /etc/systemd/system
-	sudo systemctl enable xsolarbridge.service
-	sudo systemctl start xsolarbridge.service
+	sudo cp ./systemd/xsolarlogger.service /etc/systemd/system
+	sudo systemctl enable xsolarlogger.service
+	sudo systemctl start xsolarlogger.service
 
 # Thiết lập hệ thống
 File config lưu tại địa chỉ /usr/local/zsolar/etc, sửa đổi từ dòng lệnh bằng lệnh
 
-	sudo nano /usr/local/zsolar/etc/brconfig.cfg
+	sudo nano /usr/local/zsolar/etc/config.cfg
 
 
 Chú ý các tham số nguồn (src) và đích (sink)
@@ -87,6 +87,6 @@ Chú ý các tham số nguồn (src) và đích (sink)
 # Nâng cấp tiếp theo
 
 1. Chuẩn hóa lại source - process - sink
-2. Hỗ trợ tls
+2. Hỗ trợ nhiều loại source/sink hơn
 
 
