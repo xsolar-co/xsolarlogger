@@ -29,6 +29,17 @@ Lấy dữ liệu của LXP inverter từ MQTT rồi đẩy qua InfluxDB 1/2, l�
 	cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain-arm64.cmake ..
 	make
 
+## Tùy chọn biên dịch
+
+Biên dịch sử dụng thư viện Paho
+	
+	cmake -DPAHO 
+
+Biên dịch hỗ trợ Redis
+	
+	cmake -DREDIS
+
+
 ## Cài đặt lên thiết bị (arm64)
 Copy file lên thiết bị hoạt động (thư mục làm việc /usr/local/zsolar)
 	scp xsolarlogger ubuntu@192.168.1.100:/usr/local/zsolar/bin
@@ -72,3 +83,10 @@ Chú ý các tham số nguồn (src) và đích (sink)
 	    clientid = "sinktaskcli-01";
 	    topic = "lxdb/BA31605780";
 	}
+
+# Nâng cấp tiếp theo
+
+1. Chuẩn hóa lại source - process - sink
+2. Hỗ trợ nhiều loại source/sink hơn
+
+
