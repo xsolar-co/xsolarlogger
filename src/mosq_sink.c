@@ -132,9 +132,19 @@ void* mosq_sink_task(void* arg)
         exit(ESVRERR);
     }
 
+    // loop
+    rc = mosquitto_loop_start(mosq);
+	if(rc != MOSQ_ERR_SUCCESS)
+    {
+		mosquitto_destroy(mosq);
+		fprintf(stderr, "Error: %s\n", mosquitto_strerror(rc));
+		
+        exit(ESVRERR);
+	}
+
     while (1) 
     {
-        if (wait_dequeue(q, data))
+        if (dequeue(q, data))
         {
             #ifdef DEBUG
             printf("%s\n", data);
@@ -143,6 +153,10 @@ void* mosq_sink_task(void* arg)
             // Publish to MQTT broker and topic
             send_to_mqtt(mosq, cfg->topic, data);
 
+        }
+        else
+        {
+            usleep(10000);
         }
     }
 

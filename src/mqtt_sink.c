@@ -107,8 +107,13 @@ void* mqtt_sink_task(void* arg) {
 
         conn_opts.keepAliveInterval = 20;
         conn_opts.cleansession = 1;
-        conn_opts.username = cfg->username;
-        conn_opts.password = cfg->password;
+
+        if (cfg->username != NULL)
+        {
+            conn_opts.username = cfg->username;
+            conn_opts.password = cfg->password;
+        }
+        
         conn_opts.connectTimeout = 5; // 5 seconds
         // conn_opts.MQTTVersion = 3;
 
@@ -123,7 +128,7 @@ void* mqtt_sink_task(void* arg) {
 
             MQTTClient_destroy(&client);
 
-            sleep(1);
+            sleep(5);
 
             continue;
         }
@@ -131,8 +136,9 @@ void* mqtt_sink_task(void* arg) {
         _connected = 1;
 
     
-        while (_connected) {
-            if (wait_dequeue(q, data))
+        while (_connected) 
+        {
+            if (dequeue(q, data))
             {
                 #ifdef DEBUG
                 printf("%s\n", data);
@@ -148,6 +154,10 @@ void* mqtt_sink_task(void* arg) {
 
                 MQTTClient_publishMessage(client, cfg->topic, &pubmsg, &token);
                 // MQTTClient_waitForCompletion(client, token, 1000);
+            }
+            else
+            {
+                usleep(10000);
             }
         }
 

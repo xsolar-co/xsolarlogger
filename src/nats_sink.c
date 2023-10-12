@@ -78,7 +78,7 @@ void* nats_sink_task(void* arg) {
 
         while (1) 
         {
-            if (wait_dequeue(q, data))
+            if (dequeue(q, data))
             {
                 #ifdef DEBUG
                 printf("%s\n", data);
@@ -95,6 +95,10 @@ void* nats_sink_task(void* arg) {
                     
                     break;
                 }
+            }
+            else
+            {
+                usleep(10000);
             }
         }
 

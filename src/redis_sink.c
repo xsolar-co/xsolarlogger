@@ -74,7 +74,7 @@ void* redis_sink_task(void* arg) {
         }
 
         // 2. get data from queue
-        if (wait_dequeue(q, data))
+        if (dequeue(q, data))
         {
             #ifdef DEBUG
             printf("%s\n", data);
@@ -92,6 +92,10 @@ void* redis_sink_task(void* arg) {
 
             // Free the reply
             freeReplyObject(reply);
+        }
+        else
+        {
+            usleep(10000);
         }
 
     }

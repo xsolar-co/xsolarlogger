@@ -9,6 +9,7 @@
  * 
  */
 #include <stdio.h>
+#include <unistd.h>
 #include "influxdb_sink.h"
 #include "cjson/cJSON.h"
 #include "datalog.h"
@@ -145,13 +146,17 @@ static void* influxdb_write_task(void* arg)
     char data[2048];
     while (1) 
     {        
-        int ret = wait_dequeue(q, data);
+        int ret = dequeue(q, data);
 
-        if (ret == 0) {
+        if (ret == 0) 
+        {
+            usleep(10000);
             continue;
         }
 
+#ifdef DEBUG
         printf("%s\n", data);
+#endif
         
         // Parse JSON with cJSON
         cJSON* json = cJSON_Parse(data);
