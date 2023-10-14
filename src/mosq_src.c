@@ -15,6 +15,7 @@
 #include <mosquitto.h>
 #include "mosq_src.h"
 #include "error.h"
+#include "logger.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -60,18 +61,21 @@ static void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto
  */
 static void on_connect(struct mosquitto *mosq, void *obj, int rc) 
 {
+    mosq_source_config* cfg = (mosq_source_config*) obj;
+
     if (rc == 0) 
     {
-        mosq_source_config* cfg = (mosq_source_config*) obj;
+        log_message(LOG_INFO, "Connected successfully\n");        
 
-        printf("Connected successfully\n");
         // Subscribe to the desired topic after successful connection
         mosquitto_subscribe(mosq, NULL, cfg->topic, 0);
 
     } 
     else 
     {
-        fprintf(stderr, "Connect failed: %s\n", mosquitto_strerror(rc));
+        log_message(LOG_ERROR, "Connect failed: %s\n", mosquitto_strerror(rc));
+
+        exit(EQUERR);
     }
 }
 
@@ -86,11 +90,11 @@ static void on_disconnect(struct mosquitto *mosq, void *obj, int rc)
 {
     if (rc == MOSQ_ERR_SUCCESS) 
     {
-        printf("Disconnecting gracefully...\n");
+        log_message(LOG_INFO, "Source Disconnecting gracefully...\n");
     } 
     else 
     {
-        printf("Disconnected unexpectedly, will try to reconnect...\n");
+        log_message(LOG_INFO, "Source Disconnected unexpectedly, will try to reconnect...\n");
         mosquitto_reconnect(mosq);
     }
 }
@@ -115,7 +119,7 @@ static void* mosq_source_reader_task(void* arg)
 
     if (!mosq) 
     {
-        fprintf(stderr, "Error: Out of memory.\n");
+        log_message(LOG_ERROR, "Error: Out of memory.\n");
         exit(ESYSERR);
     }
 
@@ -128,7 +132,7 @@ static void* mosq_source_reader_task(void* arg)
     rc = mosquitto_connect(mosq, cfg->host, cfg->port, 60);
     if (rc != MOSQ_ERR_SUCCESS) 
     {
-        fprintf(stderr, "Unable to connect (%d): %s\n", rc, mosquitto_strerror(rc));
+        log_message(LOG_ERROR, "Unable to connect (%d): %s\n", rc, mosquitto_strerror(rc));
         exit(ESVRERR);
     }
 
@@ -138,7 +142,7 @@ static void* mosq_source_reader_task(void* arg)
         rc = mosquitto_loop(mosq, -1, 1);
         if (rc != MOSQ_ERR_SUCCESS) 
         {
-            fprintf(stderr, "Mosquitto loop error (%d): %s\n", rc, mosquitto_strerror(rc));
+            log_message(LOG_INFO, "Mosquitto loop error (%d): %s\n", rc, mosquitto_strerror(rc));
             sleep(2); // Wait for a while before reconnecting
             
             mosquitto_reconnect(mosq);

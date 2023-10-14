@@ -8,17 +8,18 @@
  * @copyright Copyright (c) 2023
  * 
  */
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
-#include <unistd.h>
 #include <time.h>
 
-#include "redis_sink.h"
 #include <hiredis/hiredis.h>
+#include "redis_sink.h"
 #include "error.h"
+#include "logger.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -29,13 +30,14 @@ extern char* strdup(const char*);
  * @param arg 
  * @return void* 
  */
-void* redis_sink_task(void* arg) {
+void* redis_sink_task(void* arg) 
+{
 
     redis_sync_config* cfg= (redis_sync_config*) arg;
     if (cfg == NULL)
     {
         #ifdef DEBUG
-        printf("Config error ...\n");
+        log_message(LOG_ERROR, "Config error ...\n");
         #endif // DEBUG
         
         exit(EGENERR);
@@ -48,7 +50,7 @@ void* redis_sink_task(void* arg) {
     if (q == NULL)
     {
         #ifdef DEBUG
-        printf("Error queue...\n");
+        log_message(LOG_ERROR, "Error queue...\n");
         #endif // DEBUG
         
         exit(EQUERR);
@@ -61,12 +63,16 @@ void* redis_sink_task(void* arg) {
 
         // Connect to Redis
         ctx = redisConnect(cfg->host, cfg->port);
-        if (ctx == NULL || ctx->err) {
-            if (ctx) {
-                printf("Connection error: %s\n", ctx->errstr);
+        if (ctx == NULL || ctx->err) 
+        {
+            if (ctx) 
+            {
+                log_message(LOG_INFO, "Connection error: %s\n", ctx->errstr);
                 redisFree(ctx);
-            } else {
-                printf("Connection error: Can't allocate redis context\n");
+            } 
+            else 
+            {
+                log_message(LOG_INFO, "Connection error: Can't allocate redis context\n");
             }
 
             sleep(1);
@@ -77,14 +83,15 @@ void* redis_sink_task(void* arg) {
         if (dequeue(q, data))
         {
             #ifdef DEBUG
-            printf("%s\n", data);
+            log_message(LOG_INFO, "%s\n", data);
             #endif // DEBUG
 
             // Perform Redis operation to set the key with binary data
             reply = redisCommand(ctx, "SET %s %s", cfg->key, data);
 
-            if (reply == NULL) {
-                printf("Error: %s\n", ctx->errstr);
+            if (reply == NULL) 
+            {
+                log_message(LOG_INFO, "Error: %s\n", ctx->errstr);
                 redisFree(ctx);
 
                 continue;

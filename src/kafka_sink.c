@@ -8,17 +8,18 @@
  * @copyright Copyright (c) 2023
  * 
  */
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
-#include <unistd.h>
 #include <time.h>
 
-#include "kafka_sink.h"
 #include <librdkafka/rdkafka.h>
+#include "kafka_sink.h"
 #include "error.h"
+#include "logger.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -74,16 +75,18 @@ void* kafka_sink_task(void* arg) {
 
         // Create a Kafka producer instance
         rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
-        if (!rk) {
-            fprintf(stderr, "Error creating Kafka producer: %s\n", errstr);
+        if (!rk) 
+        {
+            log_message(LOG_ERROR, "Error creating Kafka producer: %s\n", errstr);
             exit(ESVRERR);
         }
 
         // Create a Kafka topic producer instance
         rd_kafka_topic_t *rkt;
         rkt = rd_kafka_topic_new(rk, cfg->topic, NULL);
-        if (!rkt) {
-            fprintf(stderr, "Error creating topic object: %s\n", rd_kafka_err2str(rd_kafka_last_error()));
+        if (!rkt) 
+        {
+            log_message(LOG_ERROR, "Error creating topic object: %s\n", rd_kafka_err2str(rd_kafka_last_error()));
             rd_kafka_destroy(rk);
 
             exit(ESVRERR);
@@ -91,10 +94,10 @@ void* kafka_sink_task(void* arg) {
 
         while (1) 
         {
-            if (wait_dequeue(q, data))
+            if (dequeue(q, data))
             {
                 #ifdef DEBUG
-                printf("%s\n", data);
+                log_message(LOG_INFO, "%s\n", data);
                 #endif // DEBUG
         
                 // Produce a message to Kafka
@@ -110,14 +113,21 @@ void* kafka_sink_task(void* arg) {
                         (void *)message, len, // Message payload and length
                         NULL, 0,  // Optional key and key length (NULL for no key)
                         NULL      // Optional message opaque (used for callbacks, can be NULL)
-                    ) == -1) {
-                    fprintf(stderr, "Error producing message: %s\n", rd_kafka_err2str(rd_kafka_last_error()));
+                    ) == -1) 
+                {
+                    log_message(LOG_ERROR, "Error producing message: %s\n", rd_kafka_err2str(rd_kafka_last_error()));
                     break;
-                } else {
-                    fprintf(stdout, "Produced message: %s\n", message);
+                } 
+                else 
+                {
+                    log_message(LOG_ERROR, "Produced message: %s\n", message);
                     // Wait for any outstanding messages to be delivered and delivery reports to be received
                     rd_kafka_flush(rk, 2000);
                 }
+            }
+            else
+            {
+                usleep(10000);
             }
         }
 

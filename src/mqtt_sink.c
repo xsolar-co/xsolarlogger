@@ -20,6 +20,7 @@
 #include "mqtt_sink.h"
 #include "MQTTClient.h"
 #include "error.h"
+#include "logger.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -35,7 +36,7 @@ volatile int _connected = 0;
  */
 static void connectionLost(void* context, char* cause) {
     #ifdef DEBUG
-    printf("Connection lost, cause: %s\n", cause);
+    log_message(LOG_INFO, "Connection lost, cause: %s\n", cause);
     #endif // DEBUG
     
     _connected = 0;
@@ -48,9 +49,10 @@ volatile MQTTClient_deliveryToken _deliveredtoken;
  * @param context 
  * @param dt 
  */
-static void delivered(void* context, MQTTClient_deliveryToken dt) {
+static void delivered(void* context, MQTTClient_deliveryToken dt) 
+{
     #ifdef DEBUG
-    printf("Message with token value %d delivery confirmed\n", dt);
+    log_message(LOG_INFO, "Message with token value %d delivery confirmed\n", dt);
     #endif // DEBUG   
 
     _deliveredtoken = dt;
@@ -62,8 +64,8 @@ static void delivered(void* context, MQTTClient_deliveryToken dt) {
  * @param arg 
  * @return void* 
  */
-void* mqtt_sink_task(void* arg) {
-
+void* mqtt_sink_task(void* arg) 
+{
     mqtt_sync_config* cfg= (mqtt_sync_config*) arg;
     if (cfg == NULL)
     {
@@ -100,7 +102,7 @@ void* mqtt_sink_task(void* arg) {
         
         if (MQTTCLIENT_SUCCESS != (rc = MQTTClient_create(&client, mqtt_addr, cfg->client_id, MQTTCLIENT_PERSISTENCE_DEFAULT, NULL)))
         {
-            printf("Create ClientSink Error, code = %d\n", rc);
+            log_message(LOG_ERROR, "Create ClientSink Error, code = %d\n", rc);
             exit(ESVRERR);
         }
             
@@ -123,7 +125,7 @@ void* mqtt_sink_task(void* arg) {
         if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) 
         {
             #ifdef DEBUG
-            printf("Failed to connect to sink, return code %d, %s retrying ...\n", rc, MQTTClient_strerror(rc));
+            log_message(LOG_INFO, "Failed to connect to sink, return code %d, %s retrying ...\n", rc, MQTTClient_strerror(rc));
             #endif
 
             MQTTClient_destroy(&client);
@@ -141,7 +143,7 @@ void* mqtt_sink_task(void* arg) {
             if (dequeue(q, data))
             {
                 #ifdef DEBUG
-                printf("%s\n", data);
+                log_message(LOG_INFO, "%s\n", data);
                 #endif // DEBUG
 
                 MQTTClient_message pubmsg = MQTTClient_message_initializer;

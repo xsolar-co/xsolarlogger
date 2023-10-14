@@ -21,6 +21,7 @@
 #include <nats/nats.h>
 #include "nats_sink.h"
 #include "error.h"
+#include "logger.h"
 
 //FIXME
 extern char* strdup(const char*);
@@ -39,7 +40,7 @@ void* nats_sink_task(void* arg) {
     if (cfg == NULL)
     {
         #ifdef DEBUG
-        printf("Error queue...\n");
+        log_message(LOG_ERR, "Error config system ...\n");
         #endif // DEBUG
         
         exit(EGENERR);
@@ -51,7 +52,7 @@ void* nats_sink_task(void* arg) {
     if (q == NULL)
     {
         #ifdef DEBUG
-        printf("Error queue...\n");
+        log_message(LOG_ERR, "Error queue...\n");
         #endif // DEBUG
         
         exit(EQUERR);
@@ -69,7 +70,8 @@ void* nats_sink_task(void* arg) {
 
         // Connect to NATS server
         natsStatus status = natsConnection_ConnectTo(&nc, url);
-        if (status != NATS_OK) {
+        if (status != NATS_OK) 
+        {
             fprintf(stderr, "Failed to connect to NATS: %s\n", natsStatus_GetText(status));
             nats_Close();
 
