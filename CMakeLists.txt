@@ -1,11 +1,11 @@
 # Minimum required version of CMake
 cmake_minimum_required(VERSION 3.0)
 
-option(CROSS_COMPILE_ARM64 "Cross compile for ARM64" OFF)
+option(CROSS_COMPILE_ARM64 "Cross compile for ARM64" ON)
 option(KAFKA "Kafka sink support" OFF)
 option(REDIS "Redis sink support" OFF)
 option(NATS "NATS sink support" OFF)
-option(MOSQUITTO "mosquitto src-sink support" OFF)
+option(MOSQUITTO "mosquitto src-sink support" ON)
 option(PAHO "paho.mqtt.c src-sink support" ON)
 option(INFLUXDB "influxdb sink support" OFF)
 
